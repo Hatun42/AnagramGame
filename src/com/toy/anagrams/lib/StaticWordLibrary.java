@@ -174,5 +174,8 @@ final class StaticWordLibrary extends WordLibrary {
     public boolean isCorrect(int idx, String userGuess) {
         return userGuess.equals(getWord(idx));
     }
+    public static void main(String[] args) {
+        System.out.println("Hello World");
+    }
 
 }
