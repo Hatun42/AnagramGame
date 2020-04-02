@@ -1,7 +1,9 @@
-
 package Email;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,12 +18,14 @@ import javax.mail.PasswordAuthentication;
 import javax.mail.Store;
 import javax.mail.internet.MimeMultipart;
 import org.jsoup.Jsoup;
+
 /**
  *
  * @author alpha
  */
 public class WorkTimeFromMail {
-     private static final String DATUM = "Datum: (\\d?\\d)\\.(\\d?\\d).(\\d\\d\\d\\d)";
+
+    private static final String DATUM = "Datum: (\\d?\\d)\\.(\\d?\\d).(\\d\\d\\d\\d)";
     private static final String ARBEITSENDE = "Arbeitsende: (\\d?\\d):(\\d\\d)";
     private static final String ARBEITSDAUER = "Arbeitsdauer: (\\d?\\d):(\\d\\d)";
     private static final String PAUSE = "Pausendauer: (\\d?\\d):(\\d\\d)";
@@ -31,18 +35,16 @@ public class WorkTimeFromMail {
     private static Message message;
     private static String messgText;
     private static Pattern pattern;
-    
-    
-     public static void main(String[] args) throws MessagingException, IOException {
 
-        String host = "Outlook.office365.com"; 
+    public static void main(String[] args) throws MessagingException, IOException {
+
+        String host = "Outlook.office365.com";
         String mailStoreType = "pop3";
         String username = "h.dalkilic@outlook.de";
-        String password = "h1322251509"; 
+        String password = "h1322251509";
         int port = 995;
-        String messageText = receiveEmail(host, mailStoreType, username, password, port);   
+        String messageText = receiveEmail(host, mailStoreType, username, password, port);
         extractInfo(messageText);
-      
 
     }
 
@@ -86,7 +88,7 @@ public class WorkTimeFromMail {
 //                System.out.println("From: " + message.getFrom()[0]);
 //                System.out.println("Text: " + message.getContent());
                 //messages[i].writeTo(System.out);
-                
+
             }
             messgText = getTextFromMessage(message);
 
@@ -98,8 +100,6 @@ public class WorkTimeFromMail {
         }
         return messgText;
     }
-
-   
 
     public static String getTextFromMessage(Message message) throws MessagingException, IOException {
         String result = "";
@@ -131,25 +131,51 @@ public class WorkTimeFromMail {
         return result;
     }
 
-    public static void extractInfo(String message) {
-        final org.jsoup.nodes.Document document = Jsoup.parse(message);       
-        ArrayList<String> regex= new ArrayList<String>();
-        regex.add(DATUM);
-        regex.add(ARBEITSBEGINN);
-        regex.add(ARBEITSENDE);
-        regex.add(PAUSE);
-        regex.add(ARBEITSDAUER);
-        regex.add(GESAMTARBEITSDAUER);
-        
-        for (String i : regex) {
-            pattern= Pattern.compile(i);
-       Matcher m = pattern.matcher(document.text());
-        while (m.find()) {
-            System.out.println(m.group() + " ");
-        } 
+    public static ArrayList extractInfo(String message) {
+        final org.jsoup.nodes.Document document = Jsoup.parse(message);
+        ArrayList<String>list= new ArrayList<String>();
+        Pattern datum = Pattern.compile(DATUM);
+        Pattern arbeitsbeginn = Pattern.compile(ARBEITSBEGINN);
+        Pattern arbeitsende = Pattern.compile(ARBEITSENDE);
+        Pattern pause = Pattern.compile(PAUSE);
+        Pattern arbeitsdauer = Pattern.compile(ARBEITSDAUER);
+        Pattern gesamtarbeitsdauer = Pattern.compile(GESAMTARBEITSDAUER);
+
+        Matcher MatcherDatum = datum.matcher(document.text());
+        Matcher MatcherArbeitsbeginn = arbeitsbeginn.matcher(document.text());
+        Matcher MatcherArbeitsEnde = arbeitsende.matcher(document.text());
+        Matcher MatcherPause = pause.matcher(document.text());
+        Matcher MatcherArbeitsdauer = arbeitsdauer.matcher(document.text());
+        Matcher MatcherGesamtstunden = gesamtarbeitsdauer.matcher(document.text());
+        Matcher[] matchers = new Matcher[]{MatcherDatum, MatcherArbeitsbeginn, MatcherArbeitsEnde, MatcherPause, MatcherArbeitsdauer};
+        int fullSet = 0;
+        boolean isEOF = false;
+        while (!isEOF) {
+            for (Matcher m : matchers) {
+
+                if (m.find()) {
+                    fullSet++;
+                    list.add(m.group());
+                    //System.out.println(m.group());
+                    if (fullSet == 5) {
+                        list.add("\n");
+                        //System.out.println("*****");
+                        fullSet = 0;
+                    }
+
+                } else {
+                    isEOF = true;
+                    break;
+                }
+            }
+
         }
-         
-        
+        if (MatcherGesamtstunden.find()) {
+            //System.out.println(MatcherGesamtstunden.group());
+            list.add(MatcherGesamtstunden.group());
+        }
+        //System.out.println(list.toString());
+        return list;
+              
     }
-    
 }
