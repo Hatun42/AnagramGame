@@ -1,9 +1,9 @@
 package Email;
 
 import java.io.IOException;
+import java.sql.Date;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +34,7 @@ public class WorkTimeFromMail {
     private static final String ADRESSE = "\\s*(.*?)\\s+([\\w.-]+@[\\w.-]+)";
     private static Message message;
     private static String messgText;
-    private static Pattern pattern;
+
 
     public static void main(String[] args) throws MessagingException, IOException {
 
@@ -44,7 +44,11 @@ public class WorkTimeFromMail {
         String password = "h1322251509";
         int port = 995;
         String messageText = receiveEmail(host, mailStoreType, username, password, port);
-        extractInfo(messageText);
+        ArrayList<String> patternParse = extractInfo(messageText);
+        LinkedHashMap<String, String> workTimes = extractInputForExcel(patternParse);
+        for (String key : workTimes.keySet()) {
+            System.out.println(key + " " + workTimes.get(key));
+        }
 
     }
 
@@ -133,7 +137,7 @@ public class WorkTimeFromMail {
 
     public static ArrayList extractInfo(String message) {
         final org.jsoup.nodes.Document document = Jsoup.parse(message);
-        ArrayList<String>list= new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<String>();
         Pattern datum = Pattern.compile(DATUM);
         Pattern arbeitsbeginn = Pattern.compile(ARBEITSBEGINN);
         Pattern arbeitsende = Pattern.compile(ARBEITSENDE);
@@ -148,34 +152,61 @@ public class WorkTimeFromMail {
         Matcher MatcherArbeitsdauer = arbeitsdauer.matcher(document.text());
         Matcher MatcherGesamtstunden = gesamtarbeitsdauer.matcher(document.text());
         Matcher[] matchers = new Matcher[]{MatcherDatum, MatcherArbeitsbeginn, MatcherArbeitsEnde, MatcherPause, MatcherArbeitsdauer};
-        int fullSet = 0;
+
         boolean isEOF = false;
         while (!isEOF) {
             for (Matcher m : matchers) {
 
                 if (m.find()) {
-                    fullSet++;
                     list.add(m.group());
-                    //System.out.println(m.group());
-                    if (fullSet == 5) {
-                        list.add("\n");
-                        //System.out.println("*****");
-                        fullSet = 0;
-                    }
-
                 } else {
                     isEOF = true;
                     break;
                 }
             }
-
         }
+
         if (MatcherGesamtstunden.find()) {
-            //System.out.println(MatcherGesamtstunden.group());
             list.add(MatcherGesamtstunden.group());
         }
-        //System.out.println(list.toString());
         return list;
-              
+    }
+    
+
+    public static LinkedHashMap extractInputForExcel(ArrayList<String> list) {
+        list.toArray();
+        LinkedHashMap<String, String> workTime = new LinkedHashMap<String, String>();
+
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).contains("Datum:")) {
+
+                workTime.put(i + ". Datum", list.get(i).substring(7, 17));
+
+            }
+            if (list.get(i).contains("Arbeitsbeginn")) {
+                workTime.put(i + ". Arbeitsbeginn", list.get(i).substring(15, 20));
+
+            }
+            if (list.get(i).contains("Arbeitsende")) {
+                workTime.put(i + ". Arbeitsende", list.get(i).substring(13, 18));
+
+            }
+            if (list.get(i).contains("Pausendauer")) {
+                workTime.put(i + ". Pausendauer", list.get(i).substring(13, 18));
+
+            }
+            if (list.get(i).contains("Arbeitsdauer")) {
+                workTime.put(i + ". Arbeitsdauer", list.get(i).substring(14, 19));
+
+            }
+            if (list.get(i).contains("Gesamtarbeitsdauer")) {
+                workTime.put(i + ". Gesamtarbeitsdauer", list.get(i).substring(20, 25));
+
+            }
+        }
+//        for (String key : workTime.keySet()) {
+//            System.out.println(key + " " + workTime.get(key));
+//        }
+        return workTime;
     }
 }
